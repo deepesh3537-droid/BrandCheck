@@ -1,0 +1,35 @@
+[
+  {
+    "id": "11111111-1111-1111-1111-000000000010",
+    "type": "fact",
+    "title": "Foundation Year: 2021",
+    "body": "Verdant Botanicals was founded in Bengaluru in 2021 by a team of biochemists and botanists.",
+    "structured": {
+      "key": "founded_year",
+      "correct_value": "2021",
+      "conflict_patterns": ["founded in 2018", "founded in 2019", "founded in 2020", "over a decade of experience", "since 2015"]
+    }
+  },
+  {
+    "id": "11111111-1111-1111-1111-000000000011",
+    "type": "fact",
+    "title": "Protein Content: 15g per bottle",
+    "body": "Each 330ml bottle of Verdant Vitality contains exactly 15g of organic pea and brown rice protein.",
+    "structured": {
+      "key": "protein_content",
+      "correct_value": "15g",
+      "conflict_patterns": ["20g protein", "25g protein", "30g protein", "zero protein"]
+    }
+  },
+  {
+    "id": "11111111-1111-1111-1111-000000000012",
+    "type": "fact",
+    "title": "Sweetener Policy: Zero Added Sugar",
+    "body": "All Verdant Botanicals products contain zero added cane sugar or artificial sweeteners. Sweetened exclusively with organic monk fruit extract.",
+    "structured": {
+      "key": "sugar_content",
+      "correct_value": "Zero added sugar (monk fruit only)",
+      "conflict_patterns": ["cane sugar", "corn syrup", "aspartame", "sucralose"]
+    }
+  }
+]

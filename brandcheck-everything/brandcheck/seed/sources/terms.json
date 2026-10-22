@@ -1,0 +1,46 @@
+[
+  {
+    "id": "11111111-1111-1111-1111-000000000001",
+    "type": "term",
+    "title": "Prohibited Buzzword: 'revolutionary'",
+    "body": "Avoid sensational tech/marketing buzzwords. Do not use 'revolutionary'. Prefer 'scientifically formulated' or 'innovative'.",
+    "structured": {
+      "prohibited": "revolutionary",
+      "preferred": "scientifically formulated",
+      "severity": "error"
+    }
+  },
+  {
+    "id": "11111111-1111-1111-1111-000000000002",
+    "type": "term",
+    "title": "Prohibited Claim Word: 'miracle'",
+    "body": "Medical or supernatural promise words like 'miracle' violate brand guidelines and regulatory standards. Use 'restorative' or 'effective'.",
+    "structured": {
+      "prohibited": "miracle",
+      "preferred": "restorative",
+      "severity": "error"
+    }
+  },
+  {
+    "id": "11111111-1111-1111-1111-000000000003",
+    "type": "term",
+    "title": "Prohibited Absolute: 'guaranteed'",
+    "body": "Do not promise absolute medical or physical guarantees. Use 'designed to support' or 'formulated to promote'.",
+    "structured": {
+      "prohibited": "guaranteed",
+      "preferred": "designed to support",
+      "severity": "warning"
+    }
+  },
+  {
+    "id": "11111111-1111-1111-1111-000000000004",
+    "type": "term",
+    "title": "Prohibited Quality Term: 'cheap'",
+    "body": "Do not refer to pricing as 'cheap'. Always describe accessibility as 'affordable' or 'cost-effective'.",
+    "structured": {
+      "prohibited": "cheap",
+      "preferred": "affordable",
+      "severity": "suggestion"
+    }
+  }
+]

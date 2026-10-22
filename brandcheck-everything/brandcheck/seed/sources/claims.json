@@ -1,0 +1,23 @@
+[
+  {
+    "id": "11111111-1111-1111-1111-000000000020",
+    "type": "claim",
+    "title": "Immune Support Claim: Vitamin C & Zinc",
+    "body": "Allowed claim: 'Supports everyday immune function through clinically measured bioavailable Vitamin C and Zinc chelate.'",
+    "structured": {
+      "approved_phrase": "Supports everyday immune function",
+      "required_substantiation": "Clinical Study ID: VB-2024-01",
+      "unsupported_variants": ["cures immunity deficiency", "eliminates all disease", "prevents viral infections"]
+    }
+  },
+  {
+    "id": "11111111-1111-1111-1111-000000000021",
+    "type": "claim",
+    "title": "Recyclability Claim: 100% Recyclable Aluminum",
+    "body": "Allowed claim: 'Packaged in 100% infinitely recyclable aluminum cans to reduce single-use plastic waste.'",
+    "structured": {
+      "approved_phrase": "100% infinitely recyclable aluminum",
+      "certification": "ISO 14021 Compliance Statement #2023-ENV-09"
+    }
+  }
+]
