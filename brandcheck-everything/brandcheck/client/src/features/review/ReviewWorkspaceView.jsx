@@ -87,7 +87,13 @@ export default function ReviewWorkspaceView() {
       setError(null);
       const content = await contentService.getContent(workspaceId, contentId);
       setSelectedContent(content);
-      setCurrentVersion(content.current_version);
+      const ver = content.current_version || {
+        id: content.current_version_id,
+        version_no: content.version_no,
+        body: content.body,
+        created_at: content.version_created_at,
+      };
+      setCurrentVersion(ver);
 
       // Trigger or retrieve review for this content
       setIsReviewing(true);

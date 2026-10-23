@@ -88,7 +88,16 @@ export const contentService = {
     if (res.rows.length === 0) {
       return null;
     }
-    return res.rows[0];
+    const row = res.rows[0];
+    return {
+      ...row,
+      current_version: {
+        id: row.current_version_id,
+        version_no: row.version_no,
+        body: row.body,
+        created_at: row.version_created_at,
+      },
+    };
   },
 
   /**
