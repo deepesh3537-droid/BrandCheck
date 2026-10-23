@@ -27,6 +27,16 @@ export function checkToneRules(segments, toneSource = null) {
     ) || (lower.includes('miracle') || lower.includes('revolutionary') || lower.includes('guaranteed') ? 'Sensationalist' : null);
 
     if (sensationalTrigger) {
+      let improved = seg.text
+        .replace(/\brevolutionary\b/gi, 'innovative')
+        .replace(/\bmiracle\b/gi, 'restorative')
+        .replace(/\bguaranteed\b/gi, 'tested')
+        .replace(/\bhyped\b/gi, 'focused')
+        .replace(/\bworld-changing\b/gi, 'high-quality');
+      if (improved === seg.text) {
+        improved = seg.text.replace(/!+/g, '.');
+      }
+
       findings.push({
         category: 'tone',
         severity: 'suggestion',
@@ -36,7 +46,7 @@ export function checkToneRules(segments, toneSource = null) {
         flagged_text: seg.text,
         explanation: `Potential tone mismatch: Language appears "${sensationalTrigger}". Brand tone guide recommends: ${toneSource?.body ? 'refer to voice guidelines.' : 'informative, measured, transparent voice.'}`,
         source_item_id: toneSource ? toneSource.id : null,
-        suggested_text: null,
+        suggested_text: improved,
         confidence: 0.82,
         origin: 'model',
       });
@@ -66,6 +76,16 @@ export async function checkToneWithModel(segments, toneSource = null) {
     const isOffBrand = offBrand.some((ob) => ob.toLowerCase() === result.topLabel.toLowerCase());
 
     if (isOffBrand && result.topScore >= 0.65) {
+      let improved = seg.text
+        .replace(/\brevolutionary\b/gi, 'innovative')
+        .replace(/\bmiracle\b/gi, 'restorative')
+        .replace(/\bguaranteed\b/gi, 'tested')
+        .replace(/\bhyped\b/gi, 'focused')
+        .replace(/\bworld-changing\b/gi, 'high-quality');
+      if (improved === seg.text) {
+        improved = seg.text.replace(/!+/g, '.');
+      }
+
       findings.push({
         category: 'tone',
         severity: 'suggestion',
@@ -73,9 +93,9 @@ export async function checkToneWithModel(segments, toneSource = null) {
         span_start: seg.start,
         span_end: seg.end,
         flagged_text: seg.text,
-        explanation: `Zero-shot tone analysis flagged potential "${result.topLabel}" voice (${(result.topScore * 100).toFixed(0)}% confidence).`,
+        explanation: `Zero-shot tone analysis flagged potential "${result.topLabel}" voice (${(result.topScore * 100).toFixed(0)}% confidence). Brand guidelines recommend measured, transparent language.`,
         source_item_id: toneSource ? toneSource.id : null,
-        suggested_text: null,
+        suggested_text: improved,
         confidence: result.topScore,
         origin: 'model',
       });

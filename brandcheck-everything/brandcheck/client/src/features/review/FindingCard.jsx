@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AlertCircle, 
   AlertTriangle, 
@@ -13,7 +13,8 @@ import {
   ArrowRight,
   BookOpen,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Sparkles
 } from 'lucide-react';
 
 const SEVERITY_CONFIG = {
@@ -49,6 +50,27 @@ const CATEGORY_LABELS = {
   accessibility: 'Accessibility',
 };
 
+function getEffectiveSuggestedText(finding) {
+  if (finding.suggested_text && String(finding.suggested_text).trim()) {
+    return String(finding.suggested_text).trim();
+  }
+  const text = finding.flagged_text || '';
+  if (finding.category === 'tone') {
+    let replaced = text
+      .replace(/\brevolutionary\b/gi, 'innovative')
+      .replace(/\bmiracle\b/gi, 'restorative')
+      .replace(/\bguaranteed\b/gi, 'tested')
+      .replace(/\bhyped\b/gi, 'focused')
+      .replace(/\bworld-changing\b/gi, 'high-quality');
+    if (replaced !== text) return replaced;
+    return text.replace(/\b(sensational|unmatched|best in the world)\b/gi, 'measured');
+  }
+  if (finding.category === 'claim') {
+    return text.replace(/\b(100%|guaranteed|miracle|cure-all)\b/gi, 'clinically tested');
+  }
+  return text;
+}
+
 export default function FindingCard({
   finding,
   isSelected,
@@ -56,12 +78,17 @@ export default function FindingCard({
   onDecision,
   isDeciding,
 }) {
+  const effectiveSuggestedText = getEffectiveSuggestedText(finding);
   const [isEditing, setIsEditing] = useState(false);
-  const [customText, setCustomText] = useState(finding.suggested_text || '');
+  const [customText, setCustomText] = useState(finding.decision_text || effectiveSuggestedText);
   const [decisionNote, setDecisionNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [showSourceDetails, setShowSourceDetails] = useState(false);
+
+  useEffect(() => {
+    setCustomText(finding.decision_text || effectiveSuggestedText);
+  }, [finding.decision_text, effectiveSuggestedText]);
 
   const severity = SEVERITY_CONFIG[finding.severity] || SEVERITY_CONFIG.warning;
   const SeverityIcon = severity.icon;
@@ -71,7 +98,7 @@ export default function FindingCard({
     e.stopPropagation();
     onDecision(finding.id, {
       decision: 'accepted',
-      decision_text: finding.suggested_text || null,
+      decision_text: finding.decision_text || effectiveSuggestedText,
     });
   };
 
@@ -120,7 +147,7 @@ export default function FindingCard({
       }`}
     >
       {/* Top Header: Severity + Category + Evidence Status */}
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Severity Badge */}
           <span
@@ -158,117 +185,131 @@ export default function FindingCard({
         </span>
       </div>
 
-      {/* Flagged Text */}
-      <div className="mb-2">
-        <div className="text-[11px] text-muted font-sans mb-0.5">Flagged phrase:</div>
-        <div className="font-mono text-xs px-2 py-1 rounded bg-bg border border-border text-error font-medium break-words">
-          "{finding.flagged_text}"
+      {/* 1. What Was Wrong Section */}
+      <div className="mb-3 p-3 rounded-lg bg-bg/80 border border-error/20">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-error mb-1.5">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>What Was Wrong:</span>
         </div>
+
+        {/* Flagged Phrase */}
+        <div className="font-mono text-xs px-2.5 py-1.5 rounded bg-bg border border-error/30 text-error font-medium break-words mb-2 leading-relaxed">
+          &ldquo;<span>{finding.flagged_text}</span>&rdquo;
+        </div>
+
+        {/* Explanation */}
+        <p className="text-xs text-text/90 leading-relaxed font-normal mb-2">
+          {finding.explanation}
+        </p>
+
+        {/* Cited Brand Source Reference Item */}
+        {finding.source_title && (
+          <div className="pt-2 border-t border-border/50">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSourceDetails(!showSourceDetails);
+              }}
+              className="flex items-center justify-between w-full text-left px-2 py-1.5 rounded bg-surface border border-border text-[11px] font-mono text-muted hover:text-text hover:border-primary/40 transition-colors"
+            >
+              <span className="flex items-center gap-1.5 truncate">
+                <BookOpen className="w-3 h-3 text-primary shrink-0" />
+                <span className="truncate">Source: {finding.source_title}</span>
+              </span>
+              {showSourceDetails ? (
+                <ChevronUp className="w-3 h-3 shrink-0" />
+              ) : (
+                <ChevronDown className="w-3 h-3 shrink-0" />
+              )}
+            </button>
+
+            {showSourceDetails && finding.source_body && (
+              <div className="mt-1.5 p-2 rounded bg-bg border border-border text-[11px] text-muted font-sans leading-relaxed">
+                <div className="font-semibold text-text mb-1 text-[10px] uppercase tracking-wider">
+                  Approved Brand Source Excerpt:
+                </div>
+                <p className="italic">"{finding.source_body}"</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Grounded Explanation */}
-      <p className="text-xs text-text/90 leading-relaxed mb-3">
-        {finding.explanation}
-      </p>
-
-      {/* Suggested Fix Diff */}
-      {finding.suggested_text && (
-        <div className="mb-3 p-2.5 rounded-lg bg-bg/80 border border-border text-xs">
-          <div className="text-[11px] font-semibold text-muted mb-1.5 flex items-center gap-1">
-            <span>Suggested Correction:</span>
+      {/* 2. Improved Version Box with Inline Accept / Reject Controls */}
+      <div className="p-3 rounded-lg bg-surface-2/90 border border-primary/30 shadow-sm">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span>Improved Version:</span>
           </div>
-
-          {!isEditing ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 font-mono text-[11px]">
-              <span className="line-through text-error/80 bg-error/10 px-1.5 py-0.5 rounded">
-                {finding.flagged_text}
-              </span>
-              <ArrowRight className="w-3 h-3 text-muted shrink-0 hidden sm:inline" />
-              <span className="text-success bg-success/10 px-1.5 py-0.5 rounded font-medium">
-                {finding.decision_text || finding.suggested_text}
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-2 mt-1">
-              <input
-                type="text"
-                value={customText}
-                onChange={(e) => setCustomText(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full px-2.5 py-1 text-xs rounded border border-primary bg-surface text-text focus:outline-none"
-                placeholder="Enter custom replacement..."
-                autoFocus
-              />
-              <div className="flex gap-1.5">
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={isDeciding || !customText.trim()}
-                  className="px-2 py-0.5 rounded bg-primary text-bg text-[11px] font-semibold hover:bg-primary-hover"
-                >
-                  Save & Apply
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditing(false);
-                  }}
-                  className="px-2 py-0.5 rounded bg-surface border border-border text-muted hover:text-text text-[11px]"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+          {!isEditing && (!finding.decision || finding.decision === 'pending') && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(true);
+              }}
+              className="text-[11px] font-medium text-muted hover:text-primary transition-colors flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-surface border border-transparent hover:border-border"
+              title="Edit improved version before accepting"
+            >
+              <Edit3 className="w-3 h-3" />
+              <span>Edit</span>
+            </button>
           )}
         </div>
-      )}
 
-      {/* Cited Brand Source Reference Item */}
-      {finding.source_title && (
-        <div className="mb-3">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowSourceDetails(!showSourceDetails);
-            }}
-            className="flex items-center justify-between w-full text-left px-2 py-1.5 rounded bg-surface-2 border border-border text-[11px] font-mono text-muted hover:text-text hover:border-primary/40 transition-colors"
-          >
-            <span className="flex items-center gap-1.5 truncate">
-              <BookOpen className="w-3 h-3 text-primary shrink-0" />
-              <span className="truncate">Source: {finding.source_title}</span>
-            </span>
-            {showSourceDetails ? (
-              <ChevronUp className="w-3 h-3 shrink-0" />
-            ) : (
-              <ChevronDown className="w-3 h-3 shrink-0" />
-            )}
-          </button>
-
-          {showSourceDetails && finding.source_body && (
-            <div className="mt-1.5 p-2 rounded bg-bg border border-border text-[11px] text-muted font-sans leading-relaxed">
-              <div className="font-semibold text-text mb-1 text-[10px] uppercase tracking-wider">
-                Approved Brand Source Excerpt:
-              </div>
-              <p className="italic">"{finding.source_body}"</p>
+        {/* Improved Replacement Text */}
+        {!isEditing ? (
+          <div className="font-mono text-xs p-2.5 rounded bg-bg border border-success/30 text-success font-medium break-words mb-3 leading-relaxed">
+            {finding.decision_text || effectiveSuggestedText}
+          </div>
+        ) : (
+          <div className="space-y-2 mb-3" onClick={(e) => e.stopPropagation()}>
+            <textarea
+              rows={2}
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              className="w-full p-2 text-xs font-mono rounded border border-primary bg-bg text-text focus:outline-none resize-none"
+              placeholder="Enter custom replacement text..."
+              autoFocus
+            />
+            <div className="flex gap-1.5 justify-end">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(false);
+                }}
+                className="px-2.5 py-1 rounded bg-surface border border-border text-muted hover:text-text text-[11px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={isDeciding || !customText.trim()}
+                className="px-2.5 py-1 rounded bg-primary text-bg font-semibold text-[11px] hover:bg-primary-hover shadow-glow-primary"
+              >
+                Save
+              </button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Human Decision Status or Action Buttons (TASK-053) */}
-      <div className="border-t border-border pt-2.5 mt-2">
+        {/* Action Controls: Accept or Reject Buttons */}
         {finding.decision && finding.decision !== 'pending' ? (
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-border/50">
             <span className="text-[11px] text-muted">Decision recorded:</span>
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium font-mono capitalize border ${
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-semibold font-mono capitalize border ${
                 finding.decision === 'accepted' || finding.decision === 'edited'
                   ? 'bg-success/10 text-success border-success/30'
                   : finding.decision === 'rejected'
                   ? 'bg-error/10 text-error border-error/30'
                   : finding.decision === 'challenged'
                   ? 'bg-warning/10 text-warning border-warning/30'
-                  : 'bg-surface-2 text-muted border-border'
+                  : 'bg-surface text-muted border-border'
               }`}
             >
               <Check className="w-3 h-3" />
@@ -276,44 +317,26 @@ export default function FindingCard({
             </span>
           </div>
         ) : !showNoteInput ? (
-          <div className="flex flex-wrap gap-1.5">
-            {finding.suggested_text && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleAccept}
-                  disabled={isDeciding}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 text-[11px] font-medium transition-colors"
-                  title="Accept suggested correction"
-                >
-                  <Check className="w-3 h-3" />
-                  <span>Accept</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditing(true);
-                  }}
-                  disabled={isDeciding}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface hover:bg-surface-2 text-text border border-border text-[11px] font-medium transition-colors"
-                  title="Edit suggested correction"
-                >
-                  <Edit3 className="w-3 h-3 text-muted" />
-                  <span>Edit</span>
-                </button>
-              </>
-            )}
+          <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+            <button
+              type="button"
+              onClick={handleAccept}
+              disabled={isDeciding}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-bg font-semibold text-xs hover:bg-primary-hover shadow-glow-primary transition-all active:scale-[0.98]"
+              title="Accept improved version"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Accept</span>
+            </button>
 
             <button
               type="button"
               onClick={(e) => handlePromptNote(e, 'rejected')}
               disabled={isDeciding}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-error/15 text-muted hover:text-error border border-border hover:border-error/30 text-[11px] font-medium transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface hover:bg-error/15 text-muted hover:text-error border border-border hover:border-error/30 font-medium text-xs transition-colors"
               title="Reject finding"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
               <span>Reject</span>
             </button>
 
@@ -321,26 +344,24 @@ export default function FindingCard({
               type="button"
               onClick={(e) => handlePromptNote(e, 'deferred')}
               disabled={isDeciding}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-surface-2 text-muted hover:text-text border border-border text-[11px] font-medium transition-colors"
+              className="inline-flex items-center justify-center p-1.5 rounded-lg bg-surface hover:bg-surface-2 text-muted hover:text-text border border-border text-xs transition-colors"
               title="Defer decision to reviewer"
             >
-              <Clock className="w-3 h-3" />
-              <span>Defer</span>
+              <Clock className="w-3.5 h-3.5" />
             </button>
 
             <button
               type="button"
               onClick={(e) => handlePromptNote(e, 'challenged')}
               disabled={isDeciding}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-warning/15 text-muted hover:text-warning border border-border hover:border-warning/30 text-[11px] font-medium transition-colors"
-              title="Challenge finding (creator objection)"
+              className="inline-flex items-center justify-center p-1.5 rounded-lg bg-surface hover:bg-warning/15 text-muted hover:text-warning border border-border hover:border-warning/30 text-xs transition-colors"
+              title="Challenge finding"
             >
-              <MessageSquare className="w-3 h-3" />
-              <span>Challenge</span>
+              <MessageSquare className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : (
-          <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+          <div className="space-y-2 pt-2 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between text-[11px] font-semibold text-text">
               <span className="capitalize">Reason for {pendingAction}:</span>
               <button
@@ -363,7 +384,7 @@ export default function FindingCard({
               <button
                 type="button"
                 onClick={handleCancelNote}
-                className="px-2 py-0.5 rounded bg-surface border border-border text-muted text-[11px] hover:text-text"
+                className="px-2.5 py-1 rounded bg-surface border border-border text-muted text-[11px] hover:text-text"
               >
                 Cancel
               </button>
@@ -371,7 +392,7 @@ export default function FindingCard({
                 type="button"
                 onClick={handleConfirmWithNote}
                 disabled={isDeciding}
-                className="px-2.5 py-0.5 rounded bg-primary text-bg font-semibold text-[11px] hover:bg-primary-hover"
+                className="px-3 py-1 rounded bg-primary text-bg font-semibold text-[11px] hover:bg-primary-hover shadow-glow-primary"
               >
                 Confirm {pendingAction}
               </button>
