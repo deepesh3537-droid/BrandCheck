@@ -1,6 +1,7 @@
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { pool } from './db/pool.js';
+import { runMigrations } from './db/migrate.js';
 
 // --- Startup validation ---
 if (env.NODE_ENV === 'production') {
@@ -43,6 +44,13 @@ async function verifyDatabaseConnection() {
 // --- Start server ---
 async function start() {
   await verifyDatabaseConnection();
+
+  // Run migrations automatically — safe to call on every startup.
+  // migrate.js tracks applied files in schema_migrations and skips already-applied ones.
+  // This removes the need for Render Shell (paid feature) or manual migration steps.
+  console.log('[BrandCheck] Running database migrations...');
+  await runMigrations();
+  console.log('[BrandCheck] Migrations complete.');
 
   const server = app.listen(env.PORT, () => {
     console.log(`[BrandCheck] Server listening on port ${env.PORT} (${env.NODE_ENV})`);
