@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../app/providers/AuthProvider.jsx';
 
 export default function RegisterPage() {
   const { register, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite');
+  const destination = inviteToken ? `/invite/${inviteToken}` : '/app';
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -13,12 +16,12 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // If already logged in, redirect to app
+  // If already logged in, redirect to app or back to invite
   React.useEffect(() => {
     if (user) {
-      navigate('/app', { replace: true });
+      navigate(destination, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, destination]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +40,7 @@ export default function RegisterPage() {
     try {
       setSubmitting(true);
       await register({ email, password, displayName });
-      navigate('/app', { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed. Please try a different email.');
     } finally {

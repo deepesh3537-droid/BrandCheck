@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../app/providers/AuthProvider.jsx';
 
@@ -7,6 +7,12 @@ export default function LoginPage() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite');
+  // After login: go back to invite page if present, else to previous page, else /app
+  const destination = inviteToken
+    ? `/invite/${inviteToken}`
+    : location.state?.from?.pathname || '/app';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,10 +22,9 @@ export default function LoginPage() {
   // If already logged in, navigate directly
   React.useEffect(() => {
     if (user) {
-      const destination = location.state?.from?.pathname || '/app';
       navigate(destination, { replace: true });
     }
-  }, [user, navigate, location]);
+  }, [user, navigate, destination]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +38,6 @@ export default function LoginPage() {
     try {
       setSubmitting(true);
       await login({ email, password });
-      const destination = location.state?.from?.pathname || '/app';
       navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
