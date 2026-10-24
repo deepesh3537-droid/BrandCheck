@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: brandcheck-api
+    runtime: node
+    rootDir: brandcheck-everything/brandcheck/server
+    buildCommand: npm install && npm run migrate
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_ORIGIN
+        value: https://brandcheck-two.vercel.app
+      - key: COOKIE_SECURE
+        value: true
+      - key: ALLOW_RULES_ONLY_FALLBACK
+        value: true
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: MAX_UPLOAD_MB
+        value: 2
+      - key: ALLOWED_UPLOAD_EXTENSIONS
+        value: .txt,.md
+      - key: MODEL_TIMEOUT_MS
+        value: 60000
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_MODEL
+        value: llama-3.1-8b-instant
+      # The following must be set as secrets in the Render dashboard (not committed):
+      # DATABASE_URL  — your hosted PostgreSQL connection string
+      # JWT_SECRET    — minimum 32 random characters
+      # LLM_API_KEY   — Groq API key (optional; rules-only fallback works without it)

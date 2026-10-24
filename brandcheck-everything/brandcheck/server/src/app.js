@@ -48,14 +48,33 @@ app.use(
 app.use(express.json({ limit: `${env.MAX_UPLOAD_MB}mb` }));
 app.use(cookieParser());
 
-// Base API healthcheck
-app.get('/api/health', (req, res) => {
-  res.json({
+// Base API healthcheck — checks DB connectivity and model status
+app.get('/api/health', async (req, res) => {
+  const health = {
     status: 'ok',
     service: 'brandcheck-server',
     env: env.NODE_ENV,
     timestamp: new Date().toISOString(),
-  });
+    checks: {},
+  };
+
+  // Check database
+  try {
+    const { pool } = await import('./db/pool.js');
+    await pool.query('SELECT 1');
+    health.checks.database = 'ok';
+  } catch {
+    health.checks.database = 'error';
+    health.status = 'degraded';
+    res.status(503);
+  }
+
+  // Report inference mode without leaking keys
+  health.checks.inference = env.LLM_API_KEY
+    ? 'hosted-api'
+    : 'rules-only-fallback';
+
+  res.json(health);
 });
 
 // Authentication routes
