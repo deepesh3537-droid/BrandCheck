@@ -17,7 +17,7 @@ authRouter.post('/register', validate(registerSchema), async (req, res, next) =>
   try {
     const { user, token } = await registerUser(req.body);
     res.cookie(COOKIE_NAME, token, cookieOptions);
-    res.status(201).json({ user });
+    res.status(201).json({ user, token });
   } catch (err) {
     next(err);
   }
@@ -28,7 +28,7 @@ authRouter.post('/login', validate(loginSchema), async (req, res, next) => {
   try {
     const { user, token } = await loginUser(req.body);
     res.cookie(COOKIE_NAME, token, cookieOptions);
-    res.json({ user });
+    res.json({ user, token });
   } catch (err) {
     next(err);
   }

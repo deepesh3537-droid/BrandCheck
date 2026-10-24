@@ -40,6 +40,7 @@ export async function checkOllamaAvailability() {
  */
 export async function getModelSubsystemStatus() {
   const ollama = await checkOllamaAvailability();
+  const hasHostedLlm = Boolean(env.LLM_API_KEY);
 
   return {
     allowFallback: env.ALLOW_RULES_ONLY_FALLBACK,
@@ -53,13 +54,20 @@ export async function getModelSubsystemStatus() {
       model: 'DeBERTa-v3-base-mnli',
       available: true,
     },
-    generation: {
-      provider: 'ollama',
-      model: env.OLLAMA_MODEL,
-      available: ollama.available,
-      modelFound: ollama.modelFound,
-      status: ollama.available ? (ollama.modelFound ? 'ready' : 'model_missing') : 'offline',
-      error: ollama.error,
-    },
+    generation: hasHostedLlm
+      ? {
+          provider: 'hosted-api',
+          model: env.LLM_MODEL,
+          available: true,
+          status: 'ready',
+        }
+      : {
+          provider: 'ollama',
+          model: env.OLLAMA_MODEL,
+          available: ollama.available,
+          modelFound: ollama.modelFound,
+          status: ollama.available ? (ollama.modelFound ? 'ready' : 'model_missing') : 'offline',
+          error: ollama.error,
+        },
   };
 }

@@ -7,7 +7,18 @@ const poolConfig = {
   connectionString: env.DATABASE_URL,
 };
 
-if (env.DATABASE_SSL) {
+const isLocal = env.DATABASE_URL.includes('localhost') || env.DATABASE_URL.includes('127.0.0.1');
+const shouldEnableSsl =
+  env.DATABASE_SSL ||
+  (!isLocal && (
+    env.DATABASE_URL.includes('sslmode=require') ||
+    env.DATABASE_URL.includes('render.com') ||
+    env.DATABASE_URL.includes('neon.tech') ||
+    env.DATABASE_URL.includes('supabase.co') ||
+    env.NODE_ENV === 'production'
+  ));
+
+if (shouldEnableSsl) {
   poolConfig.ssl = {
     rejectUnauthorized: false,
   };

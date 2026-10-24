@@ -8,7 +8,7 @@ export const COOKIE_NAME = 'brandcheck_auth';
 export const cookieOptions = {
   httpOnly: true,
   secure: env.COOKIE_SECURE,
-  sameSite: 'lax',
+  sameSite: env.COOKIE_SECURE ? 'none' : 'lax',
   maxAge: 8 * 60 * 60 * 1000, // 8 hours in ms
   path: '/',
 };

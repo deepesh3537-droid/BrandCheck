@@ -38,7 +38,7 @@ const envSchema = z.object({
   MAX_UPLOAD_MB: z.coerce.number().default(2),
   ALLOWED_UPLOAD_EXTENSIONS: z.string().default('.txt,.md'),
 
-  // Models
+  // Local Ollama Models
   OLLAMA_BASE_URL: z.string().default('http://localhost:11434'),
   OLLAMA_MODEL: z.string().default('qwen2.5:3b'),
   MODEL_TIMEOUT_MS: z.coerce.number().default(60000),
@@ -47,6 +47,11 @@ const envSchema = z.object({
     .string()
     .transform((val) => val !== 'false')
     .default('true'),
+
+  // Optional Hosted LLM API (e.g. Groq / OpenRouter / Together / OpenAI)
+  LLM_API_KEY: z.string().optional().default(''),
+  LLM_BASE_URL: z.string().default('https://api.groq.com/openai/v1'),
+  LLM_MODEL: z.string().default('llama-3.1-8b-instant'),
 });
 
 const parsed = envSchema.safeParse(process.env);

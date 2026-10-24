@@ -10,6 +10,63 @@ const explainOutputSchema = z.object({
 });
 
 /**
+ * Calls a hosted OpenAI-compatible inference API (e.g. Groq, OpenRouter, OpenAI)
+ */
+async function callHostedLlm({ flaggedText, contextSentence, category, sourceItem }) {
+  try {
+    const prompt = buildGroundedPrompt({ flaggedText, contextSentence, category, sourceItem });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), env.MODEL_TIMEOUT_MS);
+
+    const baseUrl = (env.LLM_BASE_URL || 'https://api.groq.com/openai/v1').replace(/\/+$/, '');
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.LLM_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: env.LLM_MODEL || 'llama-3.1-8b-instant',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are BrandCheck, a brand governance reviewer. Always output valid JSON strictly conforming to the requested schema.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 300,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(content);
+        const validated = explainOutputSchema.safeParse(parsed);
+        if (validated.success) {
+          return {
+            explanation: validated.data.explanation,
+            suggestedText: validated.data.suggestedText,
+            confidence: validated.data.confidence || 0.88,
+            origin: 'model',
+          };
+        }
+      }
+    } else {
+      console.warn(`[Explain] Hosted LLM responded with status ${res.status}`);
+    }
+  } catch (err) {
+    console.warn('[Explain] Hosted LLM generation error, falling back:', err.message);
+  }
+  return null;
+}
+
+/**
  * Drafts an explanation and non-destructive suggested diff correction grounded strictly in brand sources.
  * @param {Object} params
  * @param {string} params.flaggedText - Exact text flagged
@@ -19,8 +76,14 @@ const explainOutputSchema = z.object({
  * @returns {Promise<{ explanation: string, suggestedText: string | null, confidence: number | null, origin: 'model' | 'rule' }>}
  */
 export async function generateExplanationAndFix({ flaggedText, contextSentence, category, sourceItem }) {
-  const ollama = await checkOllamaAvailability();
+  // 1. Try hosted inference API if key is configured (ideal for production / Render free tier)
+  if (env.LLM_API_KEY) {
+    const hosted = await callHostedLlm({ flaggedText, contextSentence, category, sourceItem });
+    if (hosted) return hosted;
+  }
 
+  // 2. Try local Ollama instance if available
+  const ollama = await checkOllamaAvailability();
   if (ollama.available) {
     try {
       const prompt = buildGroundedPrompt({ flaggedText, contextSentence, category, sourceItem });
@@ -63,7 +126,7 @@ export async function generateExplanationAndFix({ flaggedText, contextSentence, 
     }
   }
 
-  // Grounded rule fallback if Ollama is offline or times out
+  // 3. Grounded rule fallback if both hosted LLM and Ollama are unavailable or timeout
   return generateRuleBasedExplanation({ flaggedText, category, sourceItem });
 }
 

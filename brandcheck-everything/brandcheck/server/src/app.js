@@ -14,10 +14,32 @@ export const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS configuration matching client origin
+// CORS configuration allowing production Vercel frontend and local development
+const configuredOrigins = env.CLIENT_ORIGIN.split(',').map((o) => o.trim());
+const staticAllowed = [
+  'https://brandcheck-two.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
 app.use(
   cors({
-    origin: env.CLIENT_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow non-browser requests (curl, postman, health checks, cron)
+      if (!origin) return callback(null, true);
+
+      const isAllowed =
+        staticAllowed.includes(origin) ||
+        configuredOrigins.includes(origin) ||
+        configuredOrigins.includes('*') ||
+        origin.endsWith('.vercel.app');
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
     credentials: true,
   })
 );
